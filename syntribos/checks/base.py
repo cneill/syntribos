@@ -1,4 +1,4 @@
-# Copyright 2015 Rackspace
+# Copyright 2016 Rackspace
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,21 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cafe.engine.models.data_interfaces import ConfigSectionInterface
+
+check_table = {}
+signal_table = {}
 
 
-class MainConfig(ConfigSectionInterface):
+class BaseCheck(object):
 
-    """Reads in configuration data from config file."""
+    def __init__(self, signals=None):
+        self.signals = signals if signals else []
 
-    SECTION_NAME = "syntribos"
+    @classmethod
+    def check(cls, *args, **kwargs):
+        pass
 
-    @property
-    def endpoint(self):
-        """The target host to be tested."""
-        return self.get("endpoint")
-
-    @property
-    def version(self):
-        """Used for base_auth test."""
-        return self.get("version")
+    @classmethod
+    def get_slugs(cls):
+        for sig in cls.signals:
+            for slug in sig.get_slugs():
+                yield slug

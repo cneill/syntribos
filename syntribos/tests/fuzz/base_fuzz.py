@@ -13,10 +13,10 @@
 # limitations under the License.
 import os
 import re
+import sys
 
 from six.moves.urllib.parse import urlparse
 
-from syntribos.clients.http import client
 from syntribos.issue import Issue
 from syntribos.tests import base
 import syntribos.tests.fuzz.config
@@ -27,7 +27,6 @@ data_dir = os.environ.get("CAFE_DATA_DIR_PATH", "")
 
 class BaseFuzzTestCase(base.BaseTestCase):
     config = syntribos.tests.fuzz.config.BaseFuzzConfig()
-    client = client()
     failure_keys = None
     success_keys = None
 
@@ -112,12 +111,16 @@ class BaseFuzzTestCase(base.BaseTestCase):
     @classmethod
     def setUpClass(cls):
         """being used as a setup test not."""
+        # (THIS HAPPENS WITH EVERY FUZZ STRING)
+        # (i.e. a new class is generated for each fuzz string)
         super(BaseFuzzTestCase, cls).setUpClass()
         cls.failures = []
-        cls.resp = cls.client.request(
+        # CCNEILL: THIS IS WHERE THE REQUEST HAPPENS WITH THE FUZZ STRING
+        cls.resp, signals = cls.client.request(
             method=cls.request.method, url=cls.request.url,
             headers=cls.request.headers, params=cls.request.params,
             data=cls.request.data)
+        cls.append_signal(signals, cls.resp_signals)
 
     @classmethod
     def tearDownClass(cls):
@@ -198,14 +201,21 @@ class BaseFuzzTestCase(base.BaseTestCase):
         for the string as an extension to the current TestCase class. Every
         string used as a fuzz test payload entails the generation of a new
         subclass for each parameter fuzzed. See :func:`base.extend_class`.
+
+        TODO: CCNEILL: THIS IS NEW; FINISH IT OUT
+        :param filename: filename of request template
         """
-        # maybe move this block to base.py
+        # CCNEILL: MOVE TO BASE.PY?
         request_obj = syntribos.tests.fuzz.datagen.FuzzParser.create_request(
             file_content, os.environ.get("SYNTRIBOS_ENDPOINT"))
         prepared_copy = request_obj.get_prepared_copy()
-        cls.init_response = cls.client.send_request(prepared_copy)
-        cls.init_request = cls.init_response.request
-        # end block
+        resp, signals = cls.client.send_request(prepared_copy)
+
+        cls.init_response = resp
+        cls.init_request = resp.request if resp else prepared_copy
+        for signal in signals:
+            sys.stdout.write(signal.text)
+        cls.append_signal(signals, cls.init_signals)
 
         prefix_name = "{filename}_{test_name}_{fuzz_file}_".format(
             filename=filename, test_name=cls.test_name, fuzz_file=cls.data_key)
@@ -250,6 +260,7 @@ class BaseFuzzTestCase(base.BaseTestCase):
 
         # Still associating request and response objects with issue in event of
         # debug log
+        # CCNEILL: HAVE THIS CALL SUPER() AND AXE REPETITION
         req = self.resp.request
         issue.request = req
         issue.response = self.resp

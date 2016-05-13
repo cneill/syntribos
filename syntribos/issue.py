@@ -38,10 +38,13 @@ class Issue(object):
     :ivar impacted_parameter: For fuzz tests only, a
         :class:`syntribos.tests.fuzz.base_fuzz.ImpactedParameter` that holds
         data about what part of the request was affected by the fuzz test.
+    :ivar signals: Signals are the indicators that are used to determine
+        whether a vulnerability has been triggerd.
     """
 
     def __init__(self, test, severity, text, confidence,
-                 request=None, response=None, impacted_parameter=None):
+                 request=None, response=None, impacted_parameter=None,
+                 signals=None):
         self.defect_type = test
         self.severity = severity
         self.text = text
@@ -49,6 +52,7 @@ class Issue(object):
         self.request = request
         self.response = response
         self.impacted_parameter = None
+        self.signals = signals if signals else []
 
     def as_dict(self):
         """Convert the issue to a dict of values for outputting.

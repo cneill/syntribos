@@ -11,12 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import six
-
 import string as t_string
+import sys
 
 import cafe.drivers.unittest.fixtures
 from six.moves.urllib.parse import urlparse
+
+import syntribos.signal
+from syntribos.clients.http import client, parser
+
 
 ALLOWED_CHARS = "().-_{0}{1}".format(t_string.ascii_letters, t_string.digits)
 
@@ -76,10 +81,25 @@ class BaseTestCase(cafe.drivers.unittest.fixtures.BaseTestFixture):
     """
 
     test_name = None
+    init_signals = []
+    resp_signals = []
+    client = client()
 
     @classmethod
     def get_test_cases(cls, filename, file_content):
         """Returns tests for given TestCase class (overwritten by children)."""
+        # CCNEILL: FROM BASE_FUZZ
+        # request_obj = syntribos.tests.fuzz.datagen.FuzzParser.create_request(
+        #    file_content, os.environ.get("SYNTRIBOS_ENDPOINT"))
+        request_obj = parser.create_request(
+            file_content, os.environ.get("SYNTRIBOS_ENDPOINT"))
+        prepared_copy = request_obj.get_prepared_copy()
+        resp, signals = cls.client.send_request(prepared_copy)
+
+        cls.init_response = resp
+        cls.init_request = resp.request if resp else prepared_copy
+        cls.append_signal(signals, cls.init_signals)
+
         yield cls
 
     @classmethod
@@ -151,11 +171,44 @@ class BaseTestCase(cafe.drivers.unittest.fixtures.BaseTestFixture):
 
         return issue
 
-    def test_issues(self):
-        """(DEPRECATED) Run assertions for each test in test_case."""
-        for issue in self.issues:
-            try:
-                issue.run_tests()
-            except AssertionError:
-                self.failures.append(issue)
-                raise
+    @classmethod
+    def append_signal(cls, signals, bucket):
+        if type(bucket) is not list:
+            raise Exception("NEED A LIST")
+        if type(signals) is list:
+            for s in signals:
+                if type(s) is list:
+                    for s2 in s:
+                        if s2:
+                            sys.stdout.write(s2.text)
+                            bucket.append(s2)
+        elif isinstance(signals, syntribos.signal):
+            sys.stdout.write(signals.text)
+            bucket.append(signals)
+        elif type(signals) is str:
+            sys.stdout.write("Stupid string. Stupid stupid stupid.\n")
+            sys.stdout.write(signals + "\n")
+        else:
+            sys.stdout.write("WUT\n" + str(type(signals)))
+
+    def register_issue_from_signals(self, issue, bad_signals):
+        """Register an issue, using a list of bad signals"""
+        issue.signals = bad_signals
+        issue.text += "\n\nReasons for suspicion:\n"
+        for signal in bad_signals:
+            issue.text += signal.text + "\n"
+            # CCNEILL: MAGIC
+            issue.confidence += signal.strength * signal["points"]
+        issue.text = issue.text.strip()
+
+        # CCNEILL: CONVERT FLOATS TO STRINGS
+        if issue.confidence >= 10:
+            issue.confidence = "High"
+        elif issue.confidence >= 5:
+            issue.confidence = "Medium"
+        elif issue.confidence >= 0:
+            issue.confidence = "Low"
+        else:
+            issue.confidence = "None"
+
+        self.register_issue(issue)

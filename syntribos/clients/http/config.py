@@ -1,4 +1,4 @@
-# Copyright 2015 Rackspace
+# Copyright 2016 Rackspace
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
 from cafe.engine.models.data_interfaces import ConfigSectionInterface
 
 
-class MainConfig(ConfigSectionInterface):
+class HTTPConfig(ConfigSectionInterface):
 
-    """Reads in configuration data from config file."""
+    """Reads configuration about HTTP requests."""
 
-    SECTION_NAME = "syntribos"
-
-    @property
-    def endpoint(self):
-        """The target host to be tested."""
-        return self.get("endpoint")
+    SECTION_NAME = "http"
 
     @property
-    def version(self):
-        """Used for base_auth test."""
-        return self.get("version")
+    def timeout(self):
+        """The time to wait for a request to finish (in seconds)."""
+        return int(self.get("timeout", 10))
