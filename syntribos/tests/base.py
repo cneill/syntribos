@@ -18,6 +18,8 @@ import string as t_string
 import cafe.drivers.unittest.fixtures
 from six.moves.urllib.parse import urlparse
 
+from syntribos.signal import SignalHolder as SH
+
 ALLOWED_CHARS = "().-_{0}{1}".format(t_string.ascii_letters, t_string.digits)
 
 """test_table is the master list of tests to be run by the runner"""
@@ -76,6 +78,8 @@ class BaseTestCase(cafe.drivers.unittest.fixtures.BaseTestFixture):
     """
 
     test_name = None
+    init_signals = SH()
+    resp_signals = SH()
 
     @classmethod
     def get_test_cases(cls, filename, file_content):
@@ -150,12 +154,3 @@ class BaseTestCase(cafe.drivers.unittest.fixtures.BaseTestFixture):
         self.failures.append(issue)
 
         return issue
-
-    def test_issues(self):
-        """(DEPRECATED) Run assertions for each test in test_case."""
-        for issue in self.issues:
-            try:
-                issue.run_tests()
-            except AssertionError:
-                self.failures.append(issue)
-                raise

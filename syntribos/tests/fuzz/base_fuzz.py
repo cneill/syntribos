@@ -114,7 +114,7 @@ class BaseFuzzTestCase(base.BaseTestCase):
         """being used as a setup test not."""
         super(BaseFuzzTestCase, cls).setUpClass()
         cls.failures = []
-        cls.resp = cls.client.request(
+        cls.resp, cls.resp_signals = cls.client.request(
             method=cls.request.method, url=cls.request.url,
             headers=cls.request.headers, params=cls.request.params,
             data=cls.request.data)
@@ -136,6 +136,7 @@ class BaseFuzzTestCase(base.BaseTestCase):
         defined here
         """
 
+        """
         target = self.init_request.url
         domain = urlparse(target).hostname
         regex = r"\bhttp://{0}".format(domain)
@@ -178,6 +179,18 @@ class BaseFuzzTestCase(base.BaseTestCase):
                       .format(self.config.percent)
                       )
             )
+        """
+        if "HTTP_STATUS_CODE_5XX_501" in self.resp_signals:
+            self.register_issue(
+                Issue(test="500_errors",
+                      severity="Low",
+                      confidence="High",
+                      text=("This request returns an error with status code "
+                            "{0}, which might indicate some server-side fault "
+                            "that could lead to further vulnerabilities"
+                            ).format(self.resp.status_code),
+                      resp_signals=self.resp_signals
+                      ))
 
     def test_case(self):
         """Performs the test
@@ -203,8 +216,19 @@ class BaseFuzzTestCase(base.BaseTestCase):
         request_obj = syntribos.tests.fuzz.datagen.FuzzParser.create_request(
             file_content, os.environ.get("SYNTRIBOS_ENDPOINT"))
         prepared_copy = request_obj.get_prepared_copy()
-        cls.init_response = cls.client.send_request(prepared_copy)
-        cls.init_request = cls.init_response.request
+        init_response, init_signals = cls.client.send_request(prepared_copy)
+        if "CONNECTION_FAIL" in init_signals:
+            # CCNEILL: REPEAT REQUEST
+            init_response, init_signals = cls.client.send_request(prepared_copy)
+            if "CONNECTION_FAIL" in init_signals:
+                raise Exception("Initial connection failed")
+        cls.init_response = init_response
+        cls.init_signals = init_signals
+
+        if cls.init_response is not None:
+            cls.init_request = cls.init_response.request
+        else:
+            cls.init_request = None
         # end block
 
         prefix_name = "{filename}_{test_name}_{fuzz_file}_".format(

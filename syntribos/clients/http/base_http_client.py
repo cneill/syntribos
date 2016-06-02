@@ -19,9 +19,13 @@ import logging
 from time import time
 
 import requests
-from requests.packages import urllib3
+# from requests.packages import urllib3
 import six
-urllib3.disable_warnings()
+
+import syntribos.signal
+from syntribos.clients.http.signals import HTTPFailureSignal as HTTPFail
+# CCNEILL: REMOVE THIS COMMENT?
+# urllib3.disable_warnings()
 
 
 def _log_transaction(log, level=logging.DEBUG):
@@ -70,14 +74,26 @@ def _log_transaction(log, level=logging.DEBUG):
             # Make the request and time it's execution
             response = None
             elapsed = None
+            signals = syntribos.signal.SignalHolder()
             try:
                 start = time()
-                response = func(*args, **kwargs)
+                # CCNEILL: HMMMMMM
+                response, sigs = func(*args, **kwargs)
+                signals.append(sigs)
                 elapsed = time() - start
-            except Exception as exception:
+            except requests.exceptions.RequestException as exc:
+                signals.append(HTTPFail.from_requests_exception(exc))
+            except Exception as exc:
                 log.critical('Call to Requests failed due to exception')
-                log.exception(exception)
-                raise exception
+                log.exception(exc)
+                signals.append(
+                    syntribos.signal.GenericException.from_exception(exc))
+
+                # raise exception
+
+            if not response:
+                log.log(level, "COULD NOT RETRIEVE RESPONSE FROM SERVER")
+                return (response, signals)
 
             # requests lib 1.0.0 renamed body to data in the request object
             request_body = ''
@@ -125,7 +141,7 @@ def _log_transaction(log, level=logging.DEBUG):
                 # Ignore all exceptions that happen in logging, then log them
                 log.log(level, '\n{0}\nRESPONSE INFO\n{0}\n'.format('-' * 13))
                 log.exception(exception)
-            return response
+            return (response, signals)
         return _wrapper
     return _decorator
 
@@ -153,6 +169,9 @@ class HTTPClient(object):
     def request(
             self, method, url, headers=None, params=None, data=None,
             requestslib_kwargs=None):
+
+        response = None
+        signals = syntribos.signal.SignalHolder()
 
         # set requestslib_kwargs to an empty dict if None
         requestslib_kwargs = requestslib_kwargs if (
@@ -188,6 +207,11 @@ class HTTPClient(object):
             {'headers': headers, 'params': params, 'verify': verify,
              'data': data}, **requestslib_kwargs)
 
-        # Make the request
-        return requests.request(
-            method, url, **requestslib_kwargs)
+        # CCNEILL: ERROR HANDLING
+        try:
+            response = requests.request(method, url, **requestslib_kwargs)
+        except requests.exceptions.RequestException as e:
+            signals.append(HTTPFail.from_requests_exception(e))
+        except Exception as e:
+            signals.append(syntribos.signal.GenericException.from_exception(e))
+        return (response, signals)

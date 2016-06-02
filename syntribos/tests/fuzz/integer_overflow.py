@@ -19,8 +19,24 @@ class IntOverflowBody(base_fuzz.BaseFuzzTestCase):
     test_name = "INT_OVERFLOW_BODY"
     test_type = "data"
     data_key = "integer-overflow.txt"
+    text = ("This request may have triggered a buffer overflow vulnerability."
+            " This happens when the application is unable to handle input"
+            " from the user, and may result in crashes, or in the worst case,"
+            " code execution.")
+    bad_slugs = [
+        {"slug": "TIME_DIFF_OVER", "points": 5},
+        {"slug": "STACK_TRACE", "points": 10},
+        {"slug": "HTTP_STATUS_CODE_5XX", "points": 5}
+    ]
+    bad_tags = [
+        {"tag": "SERVER_FAIL", "points": 5},
+        {"tag": "CONNECTION_TIMEOUT", "points": 7},
+        {"tag": "CONNECTION_FAIL", "points": 10}
+    ]
 
     def test_case(self):
+        self.test_default_issues()
+        """
         time_diff = self.config.time_difference_percent / 100
         if (self.resp.elapsed.total_seconds() >
                 time_diff * self.init_response.elapsed.total_seconds()):
@@ -34,6 +50,7 @@ class IntOverflowBody(base_fuzz.BaseFuzzTestCase):
                             "vulnerability to buffer overflow attacks")
                       )
             )
+        """
 
 
 class IntOverflowParams(IntOverflowBody):
