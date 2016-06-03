@@ -80,6 +80,7 @@ class BaseTestCase(cafe.drivers.unittest.fixtures.BaseTestFixture):
     test_name = None
     init_signals = SH()
     resp_signals = SH()
+    diff_signals = SH()
 
     @classmethod
     def get_test_cases(cls, filename, file_content):

@@ -43,7 +43,7 @@ class Issue(object):
 
     def __init__(self, test, severity, text, confidence,
                  request=None, response=None, impacted_parameter=None,
-                 init_signals=None, resp_signals=None):
+                 init_signals=None, resp_signals=None, diff_signals=None):
         self.defect_type = test
         self.severity = severity
         self.text = text
@@ -51,15 +51,9 @@ class Issue(object):
         self.request = request
         self.response = response
         self.impacted_parameter = None
-        if isinstance(init_signals, SignalHolder):
-            self.init_signals = init_signals
-        else:
-            self.init_signals = SignalHolder(signals=init_signals)
-
-        if isinstance(resp_signals, SignalHolder):
-            self.resp_signals = resp_signals
-        else:
-            self.resp_signals = SignalHolder(signals=resp_signals)
+        self.init_signals = SignalHolder(signals=init_signals)
+        self.resp_signals = SignalHolder(signals=resp_signals)
+        self.diff_signals = SignalHolder(signals=diff_signals)
 
     def as_dict(self):
         """Convert the issue to a dict of values for outputting.
@@ -93,11 +87,21 @@ class Issue(object):
         :rtype: `dict`
         :returns: dictionary of issue details
         """
-        return {
+        data = {
             'description': self.text,
             'confidence': self.confidence,
             'severity': self.severity
         }
+        if len(self.init_signals) > 0:
+            data["init_signals"] = self.init_signals
+
+        if len(self.resp_signals) > 0:
+            data["resp_signals"] = self.resp_signals
+
+        if len(self.diff_signals) > 0:
+            data["diff_signals"] = self.diff_signals
+
+        return data
 
     def request_as_dict(self, req):
         """Convert the request object to a dict of values for outputting.

@@ -28,7 +28,7 @@ class SynHTTPClient(HTTPClient):
         response, signals = super(SynHTTPClient, self).request(
             method, url, headers=headers, params=params, data=data,
             requestslib_kwargs=requestslib_kwargs)
-        signals.append(self.check_status_code(response))
+        signals.register(self.check_status_code(response))
         return (response, signals)
 
     def send_request(self, r):

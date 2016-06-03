@@ -79,16 +79,16 @@ def _log_transaction(log, level=logging.DEBUG):
                 start = time()
                 # CCNEILL: HMMMMMM
                 response, sigs = func(*args, **kwargs)
-                signals.append(sigs)
+                signals.register(sigs)
                 elapsed = time() - start
             except requests.exceptions.RequestException as exc:
-                signals.append(HTTPFail.from_requests_exception(exc))
+                signals.register(HTTPFail.from_requests_exception(exc))
             except Exception as exc:
                 log.critical('Call to Requests failed due to exception')
                 log.exception(exc)
-                signals.append(
+                signals.register(
                     syntribos.signal.GenericException.from_exception(exc))
-
+                raise exc
                 # raise exception
 
             if not response:
@@ -211,7 +211,7 @@ class HTTPClient(object):
         try:
             response = requests.request(method, url, **requestslib_kwargs)
         except requests.exceptions.RequestException as e:
-            signals.append(HTTPFail.from_requests_exception(e))
+            signals.register(HTTPFail.from_requests_exception(e))
         except Exception as e:
-            signals.append(syntribos.signal.GenericException.from_exception(e))
+            signals.register(syntribos.signal.GenericException.from_exception(e))
         return (response, signals)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import re
+# import re
 
 from six.moves.urllib.parse import urlparse
 
@@ -21,6 +21,7 @@ from syntribos.issue import Issue
 from syntribos.tests import base
 import syntribos.tests.fuzz.config
 import syntribos.tests.fuzz.datagen
+from syntribos.checks import len_check as len_check
 
 data_dir = os.environ.get("CAFE_DATA_DIR_PATH", "")
 
@@ -30,47 +31,6 @@ class BaseFuzzTestCase(base.BaseTestCase):
     client = client()
     failure_keys = None
     success_keys = None
-
-    @classmethod
-    def validate_length(cls):
-        """Validates length of response
-
-        Compares the length of a fuzzed response with a response to the
-        baseline request. If the response is longer than expected, returns
-        false
-
-        :returns: boolean - whether the response is longer than expected
-        """
-        if getattr(cls, "init_response", False) is False:
-            raise NotImplemented
-        init_req_len = len(cls.init_response.request.body or "")
-        init_resp_len = len(cls.init_response.content or "")
-        req_len = len(cls.resp.request.body or "")
-        resp_len = len(cls.resp.content or "")
-        request_diff = req_len - init_req_len
-        response_diff = resp_len - init_resp_len
-        percent_diff = abs(float(response_diff) / (init_resp_len + 1)) * 100
-        msg = (
-            "Validate Length:\n"
-            "\tInitial request length: {0}\n"
-            "\tInitial response length: {1}\n"
-            "\tRequest length: {2}\n"
-            "\tResponse length: {3}\n"
-            "\tRequest difference: {4}\n"
-            "\tResponse difference: {5}\n"
-            "\tPercent difference: {6}\n"
-            "\tConfig percent: {7}\n").format(
-            init_req_len, init_resp_len, req_len, resp_len, request_diff,
-            response_diff, percent_diff, cls.config.percent)
-        cls.fixture_log.debug(msg)
-        if request_diff == response_diff:
-            return True
-        elif resp_len == init_resp_len:
-            return True
-        elif cls.config.percent:
-            if percent_diff <= cls.config.percent:
-                return True
-        return False
 
     @classmethod
     def _get_strings(cls, file_name=None):
@@ -137,6 +97,8 @@ class BaseFuzzTestCase(base.BaseTestCase):
         """
 
         """
+        CCNEILL: WAITING TO IMPLEMENT THIS WITH SIGNALS
+
         target = self.init_request.url
         domain = urlparse(target).hostname
         regex = r"\bhttp://{0}".format(domain)
@@ -153,34 +115,8 @@ class BaseFuzzTestCase(base.BaseTestCase):
                       )
             )
 
-        if self.resp.status_code >= 500:
-            self.register_issue(
-                Issue(test="500_errors",
-                      severity="Low",
-                      confidence="High",
-                      text=("This request returns an error with status code "
-                            "{0}, which might indicate some server-side fault "
-                            "that could lead to further vulnerabilities"
-                            ).format(self.resp.status_code)
-                      )
-            )
-
-        if (not self.validate_length() and
-                self.resp.status_code == self.init_response.status_code):
-            self.register_issue(
-                Issue(test="length_diff",
-                      severity="Low",
-                      confidence="Low",
-                      text=("The difference in length between the response to "
-                            "the baseline request and the request returned "
-                            "when sending an attack string exceeds {0} "
-                            "percent, which could indicate a vulnerability "
-                            "to injection attacks")
-                      .format(self.config.percent)
-                      )
-            )
         """
-        if "HTTP_STATUS_CODE_5XX_501" in self.resp_signals:
+        if "HTTP_STATUS_CODE_5XX" in self.resp_signals:
             self.register_issue(
                 Issue(test="500_errors",
                       severity="Low",
@@ -191,6 +127,24 @@ class BaseFuzzTestCase(base.BaseTestCase):
                             ).format(self.resp.status_code),
                       resp_signals=self.resp_signals
                       ))
+
+        # CCNEILL: COMPARE THE DIFFERENCE BETWEEN BODY LENGTHS FOR INIT/RESP
+        self.diff_signals.register(len_check(self.init_response, self.resp))
+
+        if "LENGTH_DIFF_OVER" in self.diff_signals:
+            self.register_issue(
+                Issue(test="length_diff",
+                      severity="Low",
+                      confidence="Low",
+                      text=("The difference in length between the response to "
+                            "the baseline request and the request returned "
+                            "when sending an attack string exceeds {0} "
+                            "percent, which could indicate a vulnerability "
+                            "to injection attacks")
+                      .format(self.config.percent),
+                      diff_signals=self.diff_signals
+                      )
+            )
 
     def test_case(self):
         """Performs the test

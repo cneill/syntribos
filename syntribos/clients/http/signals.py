@@ -180,4 +180,4 @@ class HTTPFailureSignal(HTTPSignal):
 
     @classmethod
     def get_tags(cls):
-        return ["CONNECTION_FAIL", "TIMEOUT"]
+        return ["CONNECTION_FAIL", "SERVER_FAIL", "CONNECTION_TIMEOUT"]

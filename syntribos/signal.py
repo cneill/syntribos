@@ -19,17 +19,8 @@ class SignalHolder(object):
         self.signals = []
         self.all_slugs = []
 
-        if signals:
-            if type(signals) is not list:
-                raise TypeError
-
-            for signal in signals:
-                if not isinstance(signal, SynSignal):
-                    raise TypeError
-
-                if signal.strength != 0 and signal.slug not in self.all_slugs:
-                    self.signals.append(signal)
-                    self.all_slugs.append(signal.slug)
+        if signals is not None:
+            self.register(signals)
 
     """BLOCK - CHOP? CONVERT TO GENERATOR?"""
 
@@ -55,7 +46,8 @@ class SignalHolder(object):
     """ENDBLOCK"""
 
     def __repr__(self):
-        return "[" + ",".join([sig.slug for sig in self.signals]) + "]"
+        return self.signals
+        # return '["' + '" ,"'.join([sig.slug for sig in self.signals]) + '"]'
         # return "[" + ",".join(self.all_slugs) + "]"
 
     def __len__(self):
@@ -77,43 +69,27 @@ class SignalHolder(object):
             # We are searching for a signal by its slug (unique ID)
             return item.slug in self.all_slugs
 
-    def append(self, signals):
+    def register(self, signals):
         """Add a signal/list of signals to the SignalHolder
 
         Maintains a set (i.e. won't add duplicate elements)"""
-        if not signals:
+        if signals is None:
             return
 
         if isinstance(signals, SynSignal) and signals.strength != 0:
             self.signals.append(signals)
+
         elif type(signals) is list or isinstance(signals, SignalHolder):
             for signal in signals:
                 # If strength == 0, this signal was not triggered
                 if signal.strength == 0:
                     continue
+                if signal.slug in self.all_slugs:
+                    continue
                 self.signals.append(signal)
+                self.all_slugs.append(signal.slug)
         else:
             raise TypeError
-
-    """
-    def register_bad_signals(self, slugs=None, tags=None):
-        if not slugs and not tags:
-            return
-
-        if slugs:
-            if type(slugs) is not list:
-                raise TypeError
-            for slug in slugs:
-                if slug not in self.bad_slugs:
-                    self.bad_slugs.append(slug)
-
-        if tags:
-            if type(tags) is not list:
-                raise TypeError
-            for tag in tags:
-                if tag not in self.bad_tags:
-                    self.bad_tags.append(tag)
-    """
 
     def get_matching_signals(self, slugs=None, tags=None):
         """Get the signals that are matched by `slugs` and/or `tags`"""

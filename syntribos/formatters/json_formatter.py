@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import syntribos.signal
 
 
 class JSONFormatter(object):
@@ -82,13 +83,24 @@ class JSONFormatter(object):
         machine_output['stats'] = self.results.stats
 
         output = json.dumps(machine_output, sort_keys=True,
-                            indent=2, separators=(',', ': '), cls=SetEncoder)
+                            indent=2, separators=(',', ': '),
+                            cls=SyntribosEncoder)
+        # indent=2, separators=(',', ': '), cls=SetEncoder)
 
         self.results.stream.write(output)
 
 
-class SetEncoder(json.JSONEncoder):
+# class SetEncoder(json.JSONEncoder):
+class SyntribosEncoder(json.JSONEncoder):
+
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)
+
+        if isinstance(obj, syntribos.signal.SignalHolder):
+            return obj.signals
+
+        if isinstance(obj, syntribos.signal.SynSignal):
+            return obj.slug
+
         return json.JSONEncoder.default(self, obj)
