@@ -24,7 +24,7 @@ def percentage_difference(resp1, resp2):
     baseline request. If the response is longer than expected, returns
     a `LengthPercentageDiffSignal`
 
-    :returns: LengthPercentageDiffSignal
+    :returns: SynSignal or None
     """
     data = {
         "req1": resp1.request,
@@ -51,30 +51,22 @@ def percentage_difference(resp1, resp2):
     elif data["percent_diff"] < config.percent:
         # Difference not larger than configured percentage
         return None
-    return LengthPercentageDiffSignal.from_data_obj(data)
 
+    text = (
+        "Validate Length:\n"
+        "\tRequest 1 length: {0}\n"
+        "\tResponse 1 length: {1}\n"
+        "\tRequest 2 length: {2}\n"
+        "\tResponse 2 length: {3}\n"
+        "\tRequest difference: {4}\n"
+        "\tResponse difference: {5}\n"
+        "\tPercent difference: {6}%\n"
+        "\tDifference direction: {7}"
+        "\tConfig percent: {8}\n").format(
+        data["req1_len"], data["resp1_len"], data["req2_len"],
+        data["resp2_len"], data["req_diff"], data["resp_diff"],
+        data["percent_diff"], data["dir"], config.percent)
 
-class LengthPercentageDiffSignal(syntribos.signal.SynSignal):
+    slug = "LENGTH_DIFF_{dir}".format(dir=data["dir"])
 
-    signal_type = "LENGTH_DIFF"
-
-    @classmethod
-    def from_data_obj(cls, data):
-        text = (
-            "Validate Length:\n"
-            "\tRequest 1 length: {0}\n"
-            "\tResponse 1 length: {1}\n"
-            "\tRequest 2 length: {2}\n"
-            "\tResponse 2 length: {3}\n"
-            "\tRequest difference: {4}\n"
-            "\tResponse difference: {5}\n"
-            "\tPercent difference: {6}%\n"
-            "\tDifference direction: {7}"
-            "\tConfig percent: {8}\n").format(
-            data["req1_len"], data["resp1_len"], data["req2_len"],
-            data["resp2_len"], data["req_diff"], data["resp_diff"],
-            data["percent_diff"], data["dir"], config.percent)
-
-        slug = "{type}_{dir}".format(type=cls.signal_type, dir=data["dir"])
-
-        return cls(text=text, slug=slug, strength=1, data=data)
+    return syntribos.signal(text=text, slug=slug, strength=1, data=data)

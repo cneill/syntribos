@@ -71,16 +71,16 @@ def _log_transaction(log, level=logging.DEBUG):
                     'method in http client')
                 log.exception(exception)
 
-            # Make the request and time it's execution
+            # Make the request and time its execution
             response = None
             elapsed = None
             signals = syntribos.signal.SignalHolder()
+
             try:
                 start = time()
                 # CCNEILL: HMMMMMM
-                response, sigs = func(*args, **kwargs)
-                signals.register(sigs)
-                elapsed = time() - start
+                response = func(*args, **kwargs)
+
             except requests.exceptions.RequestException as exc:
                 signals.register(HTTPFail.from_requests_exception(exc))
             except Exception as exc:
@@ -89,7 +89,8 @@ def _log_transaction(log, level=logging.DEBUG):
                 signals.register(
                     syntribos.signal.GenericException.from_exception(exc))
                 raise exc
-                # raise exception
+
+            elapsed = time() - start
 
             if not response:
                 log.log(level, "COULD NOT RETRIEVE RESPONSE FROM SERVER")
@@ -170,9 +171,6 @@ class HTTPClient(object):
             self, method, url, headers=None, params=None, data=None,
             requestslib_kwargs=None):
 
-        response = None
-        signals = syntribos.signal.SignalHolder()
-
         # set requestslib_kwargs to an empty dict if None
         requestslib_kwargs = requestslib_kwargs if (
             requestslib_kwargs is not None) else {}
@@ -207,14 +205,4 @@ class HTTPClient(object):
             {'headers': headers, 'params': params, 'verify': verify,
              'data': data}, **requestslib_kwargs)
 
-        # CCNEILL: ERROR HANDLING
-        """
-        try:
-            response = requests.request(method, url, **requestslib_kwargs)
-        except requests.exceptions.RequestException as e:
-            signals.register(HTTPFail.from_requests_exception(e))
-        except Exception as e:
-            signals.register(syntribos.signal.GenericException.from_exception(e))
-        """
-        response = requests.request(method, url, **requestslib_kwargs)
-        return (response, signals)
+        return requests.request(method, url, **requestslib_kwargs)

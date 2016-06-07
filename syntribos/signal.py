@@ -150,13 +150,17 @@ class SynSignal(object):
         return False
 
 
-class GenericException(SynSignal):
+def from_generic_exception(exception):
+    if not isinstance(exception, Exception):
+        raise Exception("UGH. NOT AN EXCEPTION.")
 
-    signal_type = "GENERIC_EXCEPTION"
-    strength = 1
+    text = str(exception)
+    data = {
+        "exception_name": exception.__class__.__name__,
+        "exception_text": str(exception),
+        "exception": exception
+    }
+    slug = "GENERIC_EXCEPTION_{name}".format(data["exception_name"].upper())
+    tags = ["EXCEPTION_RAISED"]
 
-    @classmethod
-    def from_exception(cls, exception):
-        slug = "{type}_{name}".format(
-            type=cls.signal_type, name=exception.__class__.__name__.upper())
-        return cls(text=str(exception), slug=slug)
+    return SynSignal(text=text, slug=slug, strength=1, tags=tags, data=data)
