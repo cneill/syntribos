@@ -13,16 +13,21 @@
 # limitations under the License.
 from syntribos.issue import Issue
 from syntribos.tests.fuzz import base_fuzz
+from syntribos.checks import time_diff as time_diff
+
+
+text = ("This request may have triggered a buffer overflow vulnerability."
+        " This happens when the application is unable to handle input"
+        " from the user, and may result in crashes, or in the worst case,"
+        " code execution.")
 
 
 class IntOverflowBody(base_fuzz.BaseFuzzTestCase):
     test_name = "INT_OVERFLOW_BODY"
     test_type = "data"
     data_key = "integer-overflow.txt"
-    text = ("This request may have triggered a buffer overflow vulnerability."
-            " This happens when the application is unable to handle input"
-            " from the user, and may result in crashes, or in the worst case,"
-            " code execution.")
+
+    """UNUSED AT THIS POINT"""
     bad_slugs = [
         {"slug": "TIME_DIFF_OVER", "points": 5},
         {"slug": "STACK_TRACE", "points": 10},
@@ -36,21 +41,21 @@ class IntOverflowBody(base_fuzz.BaseFuzzTestCase):
 
     def test_case(self):
         self.test_default_issues()
+        self.diff_signals.register(time_diff(self.init_response, self.resp))
+
+        confidence = "Low"
         """
         time_diff = self.config.time_difference_percent / 100
         if (self.resp.elapsed.total_seconds() >
                 time_diff * self.init_response.elapsed.total_seconds()):
-            self.register_issue(
-                Issue(test="int_timing",
-                      severity="Medium",
-                      confidence="Medium",
-                      text=("The time it took to resolve a request with an "
-                            "invalid integer was too long compared to the "
-                            "baseline request. This could indicate a "
-                            "vulnerability to buffer overflow attacks")
-                      )
-            )
         """
+        if "TIME_DIFF_OVER" in self.diff_signals:
+            if "STATUS_CODE_CHANGE" not in self.diff_signals:
+                confidence = "Medium"
+
+            self.register_issue(Issue(test="int_timing", severity="Medium",
+                                confidence=confidence, text=text,
+                                diff_signals=self.diff_signals))
 
 
 class IntOverflowParams(IntOverflowBody):

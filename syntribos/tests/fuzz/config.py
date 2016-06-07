@@ -26,3 +26,7 @@ class BaseFuzzConfig(ConfigSectionInterface):
     @property
     def time_difference_percent(self):
         return float(self.get("time_difference_percent", 1000.0))
+
+    @property
+    def max_time(self):
+        return float(self.get("max_time", 10))

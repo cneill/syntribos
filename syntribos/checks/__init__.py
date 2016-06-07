@@ -11,4 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from syntribos.checks.length import percentage_difference as len_check
+from syntribos.checks.length import percentage_difference as length_diff
+from syntribos.checks.time import percentage_difference as time_diff
+from syntribos.checks.time import absolute_time as time_abs

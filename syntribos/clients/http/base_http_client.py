@@ -208,10 +208,13 @@ class HTTPClient(object):
              'data': data}, **requestslib_kwargs)
 
         # CCNEILL: ERROR HANDLING
+        """
         try:
             response = requests.request(method, url, **requestslib_kwargs)
         except requests.exceptions.RequestException as e:
             signals.register(HTTPFail.from_requests_exception(e))
         except Exception as e:
             signals.register(syntribos.signal.GenericException.from_exception(e))
+        """
+        response = requests.request(method, url, **requestslib_kwargs)
         return (response, signals)

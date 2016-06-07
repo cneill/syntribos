@@ -21,7 +21,7 @@ from syntribos.issue import Issue
 from syntribos.tests import base
 import syntribos.tests.fuzz.config
 import syntribos.tests.fuzz.datagen
-from syntribos.checks import len_check as len_check
+from syntribos.checks import length_diff as length_diff
 
 data_dir = os.environ.get("CAFE_DATA_DIR_PATH", "")
 
@@ -129,7 +129,7 @@ class BaseFuzzTestCase(base.BaseTestCase):
                       ))
 
         # CCNEILL: COMPARE THE DIFFERENCE BETWEEN BODY LENGTHS FOR INIT/RESP
-        self.diff_signals.register(len_check(self.init_response, self.resp))
+        self.diff_signals.register(length_diff(self.init_response, self.resp))
 
         if "LENGTH_DIFF_OVER" in self.diff_signals:
             self.register_issue(

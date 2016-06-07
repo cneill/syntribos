@@ -22,7 +22,7 @@ def percentage_difference(resp1, resp2):
 
     Compares the length of a fuzzed response with a response to the
     baseline request. If the response is longer than expected, returns
-    false
+    a `LengthPercentageDiffSignal`
 
     :returns: LengthPercentageDiffSignal
     """
