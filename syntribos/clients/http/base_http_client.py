@@ -23,7 +23,8 @@ import requests
 import six
 
 import syntribos.signal
-from syntribos.clients.http.signals import HTTPFailureSignal as HTTPFail
+import syntribos.clients.http.checks
+
 # CCNEILL: REMOVE THIS COMMENT?
 # urllib3.disable_warnings()
 
@@ -78,16 +79,15 @@ def _log_transaction(log, level=logging.DEBUG):
 
             try:
                 start = time()
-                # CCNEILL: HMMMMMM
                 response = func(*args, **kwargs)
 
             except requests.exceptions.RequestException as exc:
-                signals.register(HTTPFail.from_requests_exception(exc))
+                signals.register(syntribos.clients.http.checks.check_http_fail(
+                    exc))
             except Exception as exc:
                 log.critical('Call to Requests failed due to exception')
                 log.exception(exc)
-                signals.register(
-                    syntribos.signal.GenericException.from_exception(exc))
+                signals.register(syntribos.signal.from_generic_exception(exc))
                 raise exc
 
             elapsed = time() - start

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from syntribos.clients.http.base_http_client import HTTPClient
-from syntribos.clients.http.signals import HTTPStatusCodeSignal as http_code
+import syntribos.clients.http.checks
 
 
 class SynHTTPClient(HTTPClient):
@@ -28,7 +28,8 @@ class SynHTTPClient(HTTPClient):
         response, signals = super(SynHTTPClient, self).request(
             method, url, headers=headers, params=params, data=data,
             requestslib_kwargs=requestslib_kwargs)
-        signals.register(self.check_status_code(response))
+        signals.register(syntribos.clients.http.checks.check_http_status_code(
+            response))
         return (response, signals)
 
     def send_request(self, r):
@@ -36,7 +37,3 @@ class SynHTTPClient(HTTPClient):
             method=r.method, url=r.url, headers=r.headers, params=r.params,
             data=r.data)
         return (response, signals)
-
-    def check_status_code(self, response):
-        """Checks response for HTTP status codes that may indicate issues."""
-        return http_code.from_response_object(response)

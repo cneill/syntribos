@@ -14,5 +14,5 @@
 # flake8: noqa
 from syntribos.clients.http.parser import RequestCreator as parser
 from syntribos.clients.http.client import SynHTTPClient as client
-from syntribos.clients.http.signals import HTTPFailureSignal as http_fail
-from syntribos.clients.http.signals import HTTPStatusCodeSignal as http_code
+from syntribos.clients.http.checks import check_http_fail as check_http_fail
+from syntribos.clients.http.checks import check_http_status_code as check_http_status_code 

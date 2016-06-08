@@ -16,7 +16,7 @@ import requests
 import syntribos.signal
 
 
-def check_http_failure(exception):
+def check_http_fail(exception):
     if not isinstance(exception, requests.exceptions.RequestException):
         return syntribos.signal.from_generic_exception(exception)
 
@@ -27,7 +27,7 @@ def check_http_failure(exception):
         "exception_name": exception.__class__.__name__
     }
     text = "An exception was encountered when sending the request. "
-    slug = "HTTP_FAIL_{exception}".format(data["exception_name"].upper())
+    slug = "HTTP_FAIL_{exc}".format(exc=data["exception_name"].upper())
     tags = ["EXCEPTION_RAISED"]
 
     if isinstance(exception, requests.exceptions.ConnectionError):
@@ -43,7 +43,7 @@ def check_http_failure(exception):
         text += "Request timed out."
         tags.append("CONNECTION_TIMEOUT")
 
-    return syntribos.signal(
+    return syntribos.signal.SynSignal(
         text=text, slug=slug, strength=1, tags=tags, data=data)
 
 
@@ -65,8 +65,11 @@ def check_http_status_code(response):
         "request": response.request,
         "status_code": response.status_code,
         "reason": response.reason,
-        "details": codes[response.status_code]
     }
+    if codes.get(str(response.status_code), None):
+        data["details"] = codes[str(response.status_code)]
+    else:
+        data["details"] = "the request was rejected for an unknown reason"
 
     text = (
         "A {code} HTTP status code was returned by the server, with reason"
@@ -97,5 +100,5 @@ def check_http_status_code(response):
 
     slug = (slug + "_{code}").format(code=data["status_code"])
 
-    return syntribos.signal(
+    return syntribos.signal.SynSignal(
         text=text, slug=slug, strength=1, tags=tags, data=data)

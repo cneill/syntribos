@@ -57,7 +57,8 @@ def percentage_difference(resp1, resp2):
 
     slug = "TIME_DIFF_{dir}".format(dir=data["dir"])
 
-    return syntribos.signal(text=text, slug=slug, strength=1, data=data)
+    return syntribos.signal.SynSignal(
+        text=text, slug=slug, strength=1, data=data)
 
 
 def absolute_time(response):
@@ -83,5 +84,5 @@ def absolute_time(response):
     slug = "TIME_OVER_MAX"
     tags = ["CONNECTION_TIMEOUT"]
 
-    return syntribos.signal(
+    return syntribos.signal.SynSignal(
         text=text, slug=slug, strength=1, tags=tags, data=data)
